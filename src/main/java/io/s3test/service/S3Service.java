@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,15 +21,11 @@ public class S3Service {
     private final S3FileUtils s3FileUtils;
     
     public List<String> saveFile(List<MultipartFile> multipartFiles) {
-        try {
-            List<UploadFile> uploadFiles = s3FileUtils.storeFiles(multipartFiles);
-            uploadFileRepository.saveAll(uploadFiles);
-            return uploadFiles.stream()
-                    .map(UploadFile::getFileUrl)
-                    .collect(Collectors.toList());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        List<UploadFile> uploadFiles = s3FileUtils.storeFiles(multipartFiles);
+        uploadFileRepository.saveAll(uploadFiles);
+        return uploadFiles.stream()
+                .map(UploadFile::getFileUrl)
+                .collect(Collectors.toList());
     }
     
     public int deleteFile(List<String> fileUrl) {

@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface UploadFileRepository extends JpaRepository<UploadFile,Long> {
     
-    List<UploadFile> findByFileUrlIn(List<String> fileUrl);
+
     @Modifying
     @Query("delete from UploadFile uf where uf.fileUrl in :fileUrl")
     int deleteByFileUrlIn(List<String> fileUrl);

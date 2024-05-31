@@ -24,7 +24,7 @@ public class S3FileUtils {
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
     
-    public List<UploadFile> storeFiles(List<MultipartFile> multipartFiles) throws IOException {
+    public List<UploadFile> storeFiles(List<MultipartFile> multipartFiles) {
         List<UploadFile> uploadFiles = new ArrayList<>();
         for (MultipartFile multipartFile : multipartFiles) {
             if (!multipartFile.isEmpty()) {
@@ -35,7 +35,7 @@ public class S3FileUtils {
         return uploadFiles;
     }
     
-    public UploadFile storeFile(MultipartFile multipartFile) throws IOException {
+    public UploadFile storeFile(MultipartFile multipartFile)  {
         
         if (multipartFile.isEmpty()) {
             return null;
@@ -43,12 +43,16 @@ public class S3FileUtils {
         String originalFilename = multipartFile.getOriginalFilename();
         String storeFileName = createStoreFileName(originalFilename);
         // S3에 파일 업로드
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(storeFileName)
-                .build(), software.amazon.awssdk.core.sync.RequestBody.fromBytes(multipartFile.getBytes()));
-        String fileUrl = s3Client.utilities().getUrl(b -> b.bucket(bucketName).key(storeFileName)).toExternalForm();
-        return new UploadFile(originalFilename, storeFileName, fileUrl);
+        try {
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(storeFileName)
+                    .build(), software.amazon.awssdk.core.sync.RequestBody.fromBytes(multipartFile.getBytes()));
+            String fileUrl = s3Client.utilities().getUrl(b -> b.bucket(bucketName).key(storeFileName)).toExternalForm();
+            return new UploadFile(originalFilename, storeFileName, fileUrl);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     
     public void deleteFile(String fileUrl) {
