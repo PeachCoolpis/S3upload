@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -22,6 +23,7 @@ public class S3FileUtils {
     
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
+    
     public List<UploadFile> storeFiles(List<MultipartFile> multipartFiles) throws IOException {
         List<UploadFile> uploadFiles = new ArrayList<>();
         for (MultipartFile multipartFile : multipartFiles) {
@@ -32,20 +34,34 @@ public class S3FileUtils {
         
         return uploadFiles;
     }
+    
     public UploadFile storeFile(MultipartFile multipartFile) throws IOException {
         
         if (multipartFile.isEmpty()) {
             return null;
-    }
-    String originalFilename = multipartFile.getOriginalFilename();
-    String storeFileName = createStoreFileName(originalFilename);
-    // S3에 파일 업로드
+        }
+        String originalFilename = multipartFile.getOriginalFilename();
+        String storeFileName = createStoreFileName(originalFilename);
+        // S3에 파일 업로드
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(storeFileName)
                 .build(), software.amazon.awssdk.core.sync.RequestBody.fromBytes(multipartFile.getBytes()));
-        String fileUrl  = s3Client.utilities().getUrl(b -> b.bucket(bucketName).key(storeFileName)).toExternalForm();
-        return new UploadFile(originalFilename, storeFileName,fileUrl);
+        String fileUrl = s3Client.utilities().getUrl(b -> b.bucket(bucketName).key(storeFileName)).toExternalForm();
+        return new UploadFile(originalFilename, storeFileName, fileUrl);
+    }
+    
+    public void deleteFile(String fileUrl) {
+        String key = getFileNameFromUrl(fileUrl);
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+        s3Client.deleteObject(deleteObjectRequest);
+    }
+    
+    private String getFileNameFromUrl(String fileUrl) {
+        return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
     
     private String createStoreFileName(String originalFilename) {
@@ -53,6 +69,7 @@ public class S3FileUtils {
         String uuid = UUID.randomUUID().toString();
         return uuid + "." + ext;
     }
+    
     private String extractExt(String originalFilename) {
         int pos = originalFilename.lastIndexOf(".");
         return originalFilename.substring(pos + 1);
